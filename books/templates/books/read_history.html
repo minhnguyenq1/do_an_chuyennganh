@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch sử đọc truyện của bạn</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f4f6f8;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .navbar {
+            background: #222;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #fff !important;
+            text-decoration: none;
+        }
+        .logo:hover {
+            color: #6ec1e4 !important;
+            text-decoration: none;
+        }
+        .container {
+            margin-top: 40px;
+        }
+        .card {
+            max-width: 700px;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(34,34,34,0.07);
+            background: #fff;
+            padding: 32px 24px;
+        }
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            background: transparent;
+        }
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+        .book-title-link {
+            color: #222;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .book-title-link:hover {
+            color: #6ec1e4;
+            text-decoration: underline;
+        }
+        .text-muted {
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'book_list' %}" class="logo navbar-brand">LIB88</a>
+            <div>
+                {% if user.is_authenticated %}
+                    <span class="text-white mr-2">Hello, {{ user.username }}</span>
+                    <a href="{% url 'read_history' %}" class="btn btn-outline-info btn-sm mr-2 active">Lịch sử đọc</a>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm mr-2">Login</a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-info btn-sm">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h3 class="mb-4" style="color:#222;">Lịch sử đọc truyện của bạn</h3>
+            {% if histories %}
+                <ul class="list-group mt-3">
+                    {% for history in histories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <a href="{% url 'book_detail' history.book.pk %}" class="book-title-link">{{ history.book.title }}</a>
+                                <span class="text-muted">đã đọc lúc</span>
+                                <span class="text-muted">{{ history.read_at|date:"H:i d/m/Y" }}</span>
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mt-3">Bạn chưa đọc truyện nào.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

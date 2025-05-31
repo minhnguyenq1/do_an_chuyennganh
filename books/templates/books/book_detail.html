@@ -1,0 +1,237 @@
+<!-- filepath: books/templates/books/book_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ book.title }} - LIB88</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f4f6f8;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .navbar {
+            background: #222;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #fff !important;
+            text-decoration: none;
+        }
+        .logo:hover {
+            color: #6ec1e4 !important;
+            text-decoration: none;
+        }
+        .container {
+            margin-top: 40px;
+        }
+        .card {
+            max-width: 700px;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(34,34,34,0.07);
+            background: #fff;
+            padding: 32px 24px;
+        }
+        .available {
+            color: #198754;
+            font-weight: bold;
+        }
+        .not-available {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .comic-page {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .comic-page img {
+            max-width: 100%;
+            max-height: 800px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(34,34,34,0.10);
+            cursor: pointer;
+        }
+        .modal-img { width: 100%; }
+        .modal-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            background: rgba(0,0,0,0.3);
+            border: none;
+            color: #fff;
+            font-size: 2rem;
+            padding: 0 18px;
+            border-radius: 50%;
+        }
+        .modal-prev { left: 10px; }
+        .modal-next { right: 10px; }
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            background: transparent;
+        }
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+        .book-title-link {
+            color: #222;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .book-title-link:hover {
+            color: #6ec1e4;
+            text-decoration: underline;
+        }
+        .text-muted {
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'book_list' %}" class="logo navbar-brand">LIB88</a>
+            <div>
+                {% if user.is_authenticated %}
+                    <span class="text-white mr-2">Hello, {{ user.username }}</span>
+                    <a href="{% url 'read_history' %}" class="btn btn-outline-info btn-sm mr-2">Lịch sử đọc</a>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm mr-2">Login</a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-info btn-sm">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h2 class="mb-3">{{ book.title }}</h2>
+            <p><strong>Tác giả:</strong> {{ book.author.name }}</p>
+            <p><strong>Thể loại:</strong> {{ book.genre.name }}</p>
+            <p><strong>Ngày xuất bản:</strong> {{ book.publication_date }}</p>
+            <p><strong>Trạng thái:</strong>
+                {% if book.available %}
+                    <span class="available">Available</span>
+                {% else %}
+                    <span class="not-available">Not Available</span>
+                {% endif %}
+            </p>
+            {% if book.description %}
+                <p><strong>Mô tả:</strong> {{ book.description }}</p>
+            {% endif %}
+
+            {% if is_pdf %}
+                <h5 id="read" class="mt-4">Đọc sách (PDF):</h5>
+                <iframe src="{{ book.file.url }}" width="100%" height="600px" style="border:1px solid #ccc;" allowfullscreen></iframe>
+            {% elif is_docx and docx_content %}
+                <div id="read" class="mt-4 p-3 bg-light rounded">
+                    <h5>Nội dung sách (Word):</h5>
+                    <div style="white-space: pre-line;">{{ docx_content }}</div>
+                </div>
+            {% elif book.content %}
+                <div id="read" class="mt-4 p-3 bg-light rounded">
+                    <h5>Nội dung sách:</h5>
+                    <div style="white-space: pre-line;">{{ book.content }}</div>
+                </div>
+            {% endif %}
+
+            {% if book.pages.all %}
+                <div id="read" class="mt-4">
+                    <h5>Đọc truyện tranh:</h5>
+                    {% for page in book.pages.all %}
+                        <div class="comic-page">
+                            <img src="{{ page.image.url }}" alt="Page {{ forloop.counter }}" data-index="{{ forloop.counter0 }}" onclick="showModal({{ forloop.counter0 }})">
+                        </div>
+                    {% endfor %}
+                </div>
+                <script>
+                    var comicImages = [
+                        {% for page in book.pages.all %}
+                            "{{ page.image.url }}"{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ];
+                </script>
+            {% endif %}
+
+            {% if not book.file and not book.content and not book.pages.all %}
+                <p id="read" class="text-muted mt-4">Chưa có nội dung sách.</p>
+            {% endif %}
+
+            <div class="mt-4">
+                <h5>Lịch sử đọc truyện:</h5>
+                {% if read_histories %}
+                    <ul class="list-group">
+                        {% for history in read_histories %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>{{ history.user.username }}</strong>
+                                    <span class="text-muted">đã đọc lúc</span>
+                                    {{ history.read_at|date:"H:i d/m/Y" }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Chưa có ai đọc truyện này.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content position-relative">
+          <button type="button" class="modal-nav-btn modal-prev" onclick="prevImage()" style="display:none;">&#8592;</button>
+          <button type="button" class="modal-nav-btn modal-next" onclick="nextImage()" style="display:none;">&#8594;</button>
+          <div class="modal-body p-0 text-center">
+            <img id="modalImage" src="" class="modal-img" alt="Preview">
+            <div id="modalPageNum" class="mt-2 text-muted"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        var currentIndex = 0;
+        function showModal(index) {
+            currentIndex = index;
+            $('#modalImage').attr('src', comicImages[currentIndex]);
+            $('#imageModal').modal('show');
+            updateNav();
+        }
+        function prevImage() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                $('#modalImage').attr('src', comicImages[currentIndex]);
+                updateNav();
+            }
+        }
+        function nextImage() {
+            if (currentIndex < comicImages.length - 1) {
+                currentIndex++;
+                $('#modalImage').attr('src', comicImages[currentIndex]);
+                updateNav();
+            }
+        }
+        function updateNav() {
+            $('.modal-prev').toggle(currentIndex > 0);
+            $('.modal-next').toggle(currentIndex < comicImages.length - 1);
+            $('#modalPageNum').text('Trang ' + (currentIndex + 1) + '/' + comicImages.length);
+        }
+        $('#imageModal').on('hidden.bs.modal', function () {
+            $('#modalImage').attr('src', '');
+        });
+    </script>
+</body>
+</html>
